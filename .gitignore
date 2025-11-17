@@ -1,3 +1,6 @@
-__pantry__/*
+__pycache__/*
 .idea/*
+pantry/matches.parquet
+pantry/players.parquet
+
 
