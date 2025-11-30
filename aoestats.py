@@ -3,6 +3,7 @@ from dateutil.relativedelta import relativedelta
 import requests
 from time import sleep
 import pandas as pd
+import os
 
 
 base_url = "https://aoestats.io"
@@ -30,7 +31,7 @@ def get_dump(url, retries=3, delay=1.0):
             response.raise_for_status()
 
             db_type = url.split("/")[-1].split(".")[0]
-            with open(f"{db_type}.parquet", "wb") as f:
+            with open(f"pantry/{db_type}.parquet", "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
 
@@ -41,7 +42,7 @@ def get_dump(url, retries=3, delay=1.0):
             else:
                 raise  # re-raise final error
 
-def get_matches_and_players(n_weeks=5, filter_1v1=True):
+def get_1v1_matches(n_weeks=4):
     dumps = get_list_of_dumps()
     dumps = sorted(dumps, key=lambda d: d["start_date"], reverse=True)
     matches = []
@@ -61,15 +62,31 @@ def get_matches_and_players(n_weeks=5, filter_1v1=True):
 
         new_matches = pd.read_parquet("pantry/matches.parquet", engine="pyarrow")
         new_players = pd.read_parquet("pantry/players.parquet", engine="pyarrow")
-
-        if filter_1v1: # Filtered here to increase speed - player concat takes massive amount of time
-            new_matches = new_matches[new_matches["num_players"] == 2]
-            new_players = new_players[new_players["game_id"].isin(new_matches["game_id"])]
+        new_matches = new_matches[new_matches["num_players"] == 2]
+        new_matches = new_matches[new_matches["leaderboard"] == "random_map"]
+        new_matches = new_matches[["game_id", "map", "started_timestamp", "duration", "avg_elo"]]
+        new_players = new_players[new_players["game_id"].isin(new_matches["game_id"])]
+        new_players = new_players.drop(columns=["feudal_age_uptime", "castle_age_uptime", "imperial_age_uptime", "replay_summary_raw"])
         matches.append(new_matches)
         players.append(new_players)
 
     matches = pd.concat(matches, ignore_index=True)
+    matches = matches.set_index("game_id")
     players = pd.concat(players, ignore_index=True)
 
-
     return matches, players
+
+matches, players = get_1v1_matches()
+import pickle
+
+with open("pantry/match_info.pickle", "wb") as handle:
+    pickle.dump(matches, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+with open("pantry/match_players.pickle", "wb") as handle:
+    pickle.dump(players, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+if os.path.exists("pantry/players.parquet"):
+    os.remove("pantry/players.parquet")
+
+if os.path.exists("pantry/matches.parquet"):
+    os.remove("pantry/matches.parquet")

@@ -27,3 +27,4 @@ Some smurfs talk crap apparently. It could maybe be used?
 - requests
 - pickle
 - matplotlib
+- pyarrow
