@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.preprocessing import RobustScaler
 
+# Deprecated
 
 WR_LIMIT = 0.25
 MIN_GAMES = 10
@@ -97,5 +98,5 @@ smurfs_ids = '\n'.join(smurfs.index.astype(str).tolist())
 with open('pantry/smurfs.pickle', 'wb') as file:
     pickle.dump(smurfs, file, protocol=pickle.HIGHEST_PROTOCOL)
 
-with open('pantry/smurfs.txt', 'w') as file:
+with open('training_labels.txt', 'w') as file:
     file.write(smurfs_ids)
